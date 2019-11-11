@@ -7,6 +7,8 @@ import numpy as np
 '''
 Version | Commit
  0.1    | First version, by H.F, Oct/08/2019
+ 0.2    | Using non-blocking socket
+Todo: 
 '''
 
 '''
@@ -16,6 +18,8 @@ class general_socket():
     def __init__(self):
         self.PORT = 60000
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setblocking(0)
+        self.sock.settimeout(0.5)
    
     def recvall(self, sock, n):
         data = b''
@@ -50,6 +54,7 @@ class general_socket():
 class socket_server(general_socket):
     def __init__(self):
         super().__init__()
+
         self.sock.bind(('0.0.0.0', self.PORT))
         self.sock.listen(1)
         
