@@ -56,7 +56,7 @@ class socket_server(general_socket):
         super().__init__()
 
         self.sock.bind(('0.0.0.0', self.PORT))
-        self.sock.listen(1)
+        self.sock.listen(5) # maximal 5
         
     def connect(self):
         self.conn, addr = self.sock.accept()

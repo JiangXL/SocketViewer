@@ -21,35 +21,30 @@ viewer = SocketTransfer.socket_viewer(host)
 
 app = pg.mkQApp()
 
-# Create remote graphics viewer
 view = pg.widgets.RemoteGraphicsView.RemoteGraphicsView()
-# Create Widget Layout
-layout = pg.LayoutWidget()
-layout.addWidget(view, 0, 0) #, 3, 1)
-layout.show()
+view.setWindowTitle('Scope of Mind')
 
-# Create remote graphics layout
-l_view = view.pg.GraphicsLayout()
-view.setCentralItem(l_view)
-# Create view box in remote graphics layout
-vb = view.pg.ViewBox(lockAspect=True, invertY=True)
-l_view.addItem(vb)
-# Create initial data
+layout = pg.LayoutWidget()
+layout.addWidget(view, 0, 0, 3, 1)
+layout.show()
+vb = view.pg.ViewBox()
+vb.setAspectLocked()
+view.setCentralItem(vb)
+
+w = view.pg.HistogramLUTWidget()
+#layout.addWidget(w, 0, 1)
+
 data = np.random.normal(size=(2048,2048))
 img = view.pg.ImageItem( data )
 img._setProxyOptions(deferGetattr=True)  ## speeds up access to rplt.plot
 vb.addItem(img)
-# Create histogram and lut in remote graphics layout
-lut = view.pg.HistogramLUTItem()
-lut.setImageItem(img)
-lut.setHistogramRange(0, 65535)
-l_view.addItem(lut)
+w.setImageItem(img, clear=True, _callSync='off')
 
 def update():
     global img
-    data = np.random.normal(size=(2048,2048))
-    #data = viewer.recv_img()
+    data = viewer.recv_img()
     img.setImage(data, clear=True, _callSync='off')
+    #w.setImageItem(img, clear=True, _callSync='off')
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
