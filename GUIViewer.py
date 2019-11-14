@@ -3,7 +3,7 @@ GUI Viewer to visualize image from socket
 
 H.F 20191008 ver 0.1
 H.F 20191111 ver 0.2
-
+TODO: FIX Performance at Windows
 """
 import argparse
 import numpy as np
@@ -18,8 +18,9 @@ host = args.host
 
 viewer = SocketTransfer.socket_viewer(host)
 
-app = pg.mkQApp()
-
+app = QtGui.QApplication([])
+#win = QtGui.QMainWindow()
+#win.show()
 # Create graphics viewer
 view = pg.widgets.GraphicsView.GraphicsView()
 # Create Widget Layout
@@ -27,6 +28,7 @@ layout = pg.LayoutWidget()
 layout.addWidget(view, 0, 0) #, 3, 1)
 layout.show()
 
+#win.setCentralWidget(view)
 # Create graphics layout
 l_view = pg.GraphicsLayout()
 view.setCentralItem(l_view)
@@ -34,7 +36,7 @@ view.setCentralItem(l_view)
 vb = pg.ViewBox(lockAspect=True, invertY=True)
 l_view.addItem(vb)
 # Create initial data
-data = np.random.normal(size=(2048,2048))
+data = np.random.normal(size=(1024,1024))
 img = pg.ImageItem( data )
 vb.addItem(img)
 # Create histogram and lut in graphics layout
@@ -47,7 +49,8 @@ def update():
     global img
     #data = np.random.normal(size=(2048,2048))
     data = viewer.recv_img()
-    img.setImage(data, clear=True, _callSync='off')
+    if not (data is None):
+        img.setImage(data, clear=True, _callSync='off')
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
