@@ -8,7 +8,7 @@ import numpy as np
 Version | Commit
  0.1    | First version, by H.F, Oct/08/2019
  0.2    | Using non-blocking socket
-Todo: 
+Todo: Add close function 
 '''
 
 '''
@@ -24,7 +24,10 @@ class general_socket():
     def recvall(self, sock, n):
         data = b''
         while len(data) < n:
-            packet = sock.recv( n-len(data))
+            try:
+                packet = sock.recv( n-len(data))
+            except OSError: # socket timeout error
+                return None
             if not packet:
                 return None
             data += packet
@@ -38,9 +41,10 @@ class general_socket():
         sock.sendall( msg )
     
     def recv_img(self, sock ):
+        # if timeout occur
         raw_msglen = self.recvall( sock, 4 ) # read image length 
         if not raw_msglen:
-            print("None data")
+            print("None data", end=' ')
             return None
         msglen = struct.unpack('>I', raw_msglen)[0]
         raw_height = self.recvall( sock, 2)  # raed image height

@@ -6,11 +6,10 @@ H.F 20191111 ver 0.2
 
 """
 import argparse
-from pyqtgraph.Qt import QtGui, QtCore
-import pyqtgraph as pg
-import pyqtgraph.widgets.RemoteGraphicsView
 import numpy as np
-import SocketTransfer
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtGui, QtCore
+import SocketTransfer # for image transfer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--host', type=str, default='127.0.0,1')
@@ -21,34 +20,33 @@ viewer = SocketTransfer.socket_viewer(host)
 
 app = pg.mkQApp()
 
-# Create remote graphics viewer
-view = pg.widgets.RemoteGraphicsView.RemoteGraphicsView()
+# Create graphics viewer
+view = pg.widgets.GraphicsView.GraphicsView()
 # Create Widget Layout
 layout = pg.LayoutWidget()
 layout.addWidget(view, 0, 0) #, 3, 1)
 layout.show()
 
-# Create remote graphics layout
-l_view = view.pg.GraphicsLayout()
+# Create graphics layout
+l_view = pg.GraphicsLayout()
 view.setCentralItem(l_view)
-# Create view box in remote graphics layout
-vb = view.pg.ViewBox(lockAspect=True, invertY=True)
+# Create view box in graphics layout
+vb = pg.ViewBox(lockAspect=True, invertY=True)
 l_view.addItem(vb)
 # Create initial data
 data = np.random.normal(size=(2048,2048))
-img = view.pg.ImageItem( data )
-img._setProxyOptions(deferGetattr=True)  ## speeds up access to rplt.plot
+img = pg.ImageItem( data )
 vb.addItem(img)
-# Create histogram and lut in remote graphics layout
-lut = view.pg.HistogramLUTItem()
+# Create histogram and lut in graphics layout
+lut = pg.HistogramLUTItem()
 lut.setImageItem(img)
 lut.setHistogramRange(0, 65535)
 l_view.addItem(lut)
 
 def update():
     global img
-    data = np.random.normal(size=(2048,2048))
-    #data = viewer.recv_img()
+    #data = np.random.normal(size=(2048,2048))
+    data = viewer.recv_img()
     img.setImage(data, clear=True, _callSync='off')
 
 timer = QtCore.QTimer()
