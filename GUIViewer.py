@@ -12,7 +12,7 @@ from pyqtgraph.Qt import QtGui, QtCore
 import SocketTransfer # for image transfer
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--host', type=str, default='127.0.0,1')
+parser.add_argument('--host', type=str, default='127.0.0.1')
 args = parser.parse_args()
 host = args.host
 
@@ -54,7 +54,7 @@ def update():
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(0)
+timer.start(16) # Refersh each 16ms
 
 
 

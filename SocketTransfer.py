@@ -3,12 +3,14 @@ import socket
 import struct
 import numpy as np
 
-#Ref: https://stackoverflow.com/questions/17667903/python-socket-receive-large-amount-of-data
+#Ref:https://stackoverflow.com/questions/17667903/python-socket-receive-large-amount-of-data
+#    https://docs.python.org/zh-cn/3/library/struct.html
 '''
 Version | Commit
  0.1    | First version, by H.F, Oct/08/2019
  0.2    | Using non-blocking socket
-Todo: Add close function 
+Todo: 1. Add close function or context manager type
+      2. Add function to recv and sned serilize data instead of matrix 
 '''
 
 '''
@@ -26,20 +28,22 @@ class general_socket():
         while len(data) < n:
             try:
                 packet = sock.recv( n-len(data))
-            except OSError: # socket timeout error
+            except socket.timeout: # socket timeout error
                 return None
             if not packet:
                 return None
             data += packet
         return data
     
-    def send_img(self, sock, img ):
+    def send_img(self, conn, img ):
         img_bytes = img.tobytes()
-        msg = ( struct.pack('>I', len(img_bytes)) 
+        msg = ( struct.pack('>I', len(img_bytes))  # unsigned int, length 4
                 + struct.pack('>H',img.shape[0])
                + struct.pack('>H', img.shape[1]) + img_bytes)
-        sock.sendall( msg )
-        # TODO: add timeout exception
+        try:
+            conn.sendall( msg )
+        except socket.timeout:
+            print("Lost tcp connection")
     
     def recv_img(self, sock ):
         # if timeout occur
@@ -59,12 +63,20 @@ class general_socket():
 class socket_server(general_socket):
     def __init__(self):
         super().__init__()
-
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        # add to avoid "Address already in used"
         self.sock.bind(('0.0.0.0', self.PORT))
-        self.sock.listen(5) # maximal 5
+        self.sock.listen(1)
         
     def connect(self):
+        """ Accept to the last connect require if lost connection"""
         self.conn, addr = self.sock.accept()
+        #isConnet = False
+        #while(not isConnet):
+        #    try:
+        #        self.conn, addr = self.sock.accept()
+        #    except socket.timeout:
+        #        isConnet = True 
         print("Client", addr, "connected")
         # TODO: add a except to sure connecte final client
     
