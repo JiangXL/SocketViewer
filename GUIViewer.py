@@ -28,7 +28,6 @@ layout = pg.LayoutWidget()
 layout.addWidget(view, 0, 0) #, 3, 1)
 layout.show()
 
-#win.setCentralWidget(view)
 # Create graphics layout
 l_view = pg.GraphicsLayout()
 view.setCentralItem(l_view)
@@ -42,20 +41,25 @@ vb.addItem(img)
 # Create histogram and lut in graphics layout
 lut = pg.HistogramLUTItem()
 lut.setImageItem(img)
-lut.setHistogramRange(0, 65535)
+lut.setHistogramRange(0, 50000)
 l_view.addItem(lut)
+# Checkbox
+auto_checkbox = QtGui.QCheckBox("Auto Level")
+auto_checkbox.setChecked(True)
+layout.addWidget(auto_checkbox, 1, 0)
 
+#data = np.random.normal(size=(2048,2048))
 def update():
-    global img
-    #data = np.random.normal(size=(2048,2048))
     data = viewer.recv_img()
     if not (data is None):
-        img.setImage(data, clear=True, _callSync='off')
+        if auto_checkbox.isChecked():
+            img.setImage(data.T, clear=True, _callSync='off', autoLevels=True)
+        else:
+            img.setImage(data.T, clear=True, _callSync='off', autoLevels=False)
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
 timer.start(16) # Refersh each 16ms
-
 
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
