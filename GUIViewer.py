@@ -5,6 +5,7 @@ H.F 20191008 ver 0.1
 H.F 20191111 ver 0.2
 TODO: FIX Performance at Windows
 """
+import time
 import argparse
 import numpy as np
 import pyqtgraph as pg
@@ -48,7 +49,7 @@ auto_checkbox = QtGui.QCheckBox("Auto Level")
 auto_checkbox.setChecked(True)
 layout.addWidget(auto_checkbox, 1, 0)
 
-#data = np.random.normal(size=(2048,2048))
+data = np.random.normal(size=(2048,2048))
 def update():
     data = viewer.recv_img()
     if not (data is None):
@@ -59,7 +60,7 @@ def update():
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(16) # Refersh each 16ms
+timer.start(0) # Refersh each 16ms
 
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
