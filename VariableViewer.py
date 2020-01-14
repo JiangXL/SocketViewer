@@ -79,7 +79,7 @@ def updateVariables():
 
 timer = QtCore.QTimer()
 timer.timeout.connect(updateVariables)
-timer.start(10) # Refersh Window each 16ms 
+timer.start(0) # Refersh Window each 16ms 
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':

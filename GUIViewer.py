@@ -4,7 +4,9 @@ GUI Viewer to visualize image from socket
 H.F 20191008 ver 0.1
 H.F 20191111 ver 0.2
 TODO: FIX Performance at Windows
+      Add caught except when no socket connection
 """
+
 import time
 import argparse
 import numpy as np
@@ -17,7 +19,13 @@ parser.add_argument('--host', type=str, default='127.0.0.1')
 args = parser.parse_args()
 host = args.host
 
-viewer = SocketTransfer.socket_viewer(host)
+connect = 1 # 0 mean connect, larger than 0 mean fail to connect
+def connect():
+    try:
+        viewer = SocketTransfer.socket_viewer(host)
+        isconnect = 0
+    except ConnectionRefusedError:
+        print("No target to connect!")
 
 app = QtGui.QApplication([])
 #win = QtGui.QMainWindow()
@@ -49,9 +57,15 @@ auto_checkbox = QtGui.QCheckBox("Auto Level")
 auto_checkbox.setChecked(True)
 layout.addWidget(auto_checkbox, 1, 0)
 
-data = np.random.normal(size=(2048,2048))
+#data = np.random.normal(size=(2048,2048))
 def update():
-    data = viewer.recv_img()
+    if connect == 0 :
+        data = viewer.recv_img()
+    else:
+        data = None
+        connect()
+        timer.start(10)
+
     if not (data is None):
         if auto_checkbox.isChecked():
             img.setImage(data.T, clear=True, _callSync='off', autoLevels=True)

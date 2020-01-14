@@ -16,7 +16,7 @@ class SocketSync():
         self.PORT = 60001
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setblocking(0)
-        self.sock.settimeout(0.2)
+        self.sock.settimeout(0.001)
 
     def structure(self):
         """ Create and maintance variable info"""
@@ -46,7 +46,7 @@ class Server(SocketSync):
             except:
                 time.sleep(3)
         self.conn.setblocking(0)
-        #self.conn.settimeout(0.2)
+        self.conn.settimeout(0.001)
 
     def send(self):
         while (True):
@@ -57,7 +57,7 @@ class Server(SocketSync):
                     self.conn.sendall(struct.pack('>d', var.value))
                 except ConnectionError:
                     self.accept()
-            time.sleep(0.1)
+            #time.sleep(0.001)
             # Revice all variance data
             try:
                 data = self.conn.recv(8)
@@ -77,7 +77,7 @@ class Client(SocketSync):
         self.HOST = HOST
         self.sock.connect((self.HOST, self.PORT))
         self.sock.setblocking(0)
-        self.sock.settimeout(0.2)
+        self.sock.settimeout(0.001)
 
     def recv_var( self ):
         try:
