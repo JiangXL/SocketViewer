@@ -18,7 +18,7 @@ host = args.host
 
 viewer = SocketTransfer.socket_viewer(host)
 
-app = pg.mkQApp()
+app = QtGui.QApplication([])
 
 # Create graphics viewer
 view = pg.widgets.GraphicsView.GraphicsView()
@@ -34,7 +34,7 @@ view.setCentralItem(l_view)
 vb = pg.ViewBox(lockAspect=True, invertY=True)
 l_view.addItem(vb)
 # Create initial data
-data = np.random.normal(size=(2048,2048))
+data = np.random.normal(size=(1024,1024))
 img = pg.ImageItem( data )
 vb.addItem(img)
 # Create histogram and lut in graphics layout
@@ -47,7 +47,8 @@ def update():
     global img
     #data = np.random.normal(size=(2048,2048))
     data = viewer.recv_img()
-    img.setImage(data, clear=True, _callSync='off')
+    if not (data is None):
+        img.setImage(data, clear=True, _callSync='off')
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update)

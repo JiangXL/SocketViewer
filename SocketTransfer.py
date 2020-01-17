@@ -44,7 +44,7 @@ class general_socket():
         # if timeout occur
         raw_msglen = self.recvall( sock, 4 ) # read image length 
         if not raw_msglen:
-            print("None data", end=' ')
+            #print("None data", end=' ')
             return None
         msglen = struct.unpack('>I', raw_msglen)[0]
         raw_height = self.recvall( sock, 2)  # raed image height
