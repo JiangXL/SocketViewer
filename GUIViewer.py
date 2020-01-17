@@ -3,8 +3,11 @@ GUI Viewer to visualize image from socket
 
 H.F 20191008 ver 0.1
 H.F 20191111 ver 0.2
-
+TODO: FIX Performance at Windows
+      Add caught except when no socket connection
 """
+
+import time
 import argparse
 import numpy as np
 import pyqtgraph as pg
@@ -12,14 +15,21 @@ from pyqtgraph.Qt import QtGui, QtCore
 import SocketTransfer # for image transfer
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--host', type=str, default='127.0.0,1')
+parser.add_argument('--host', type=str, default='127.0.0.1')
 args = parser.parse_args()
 host = args.host
 
-viewer = SocketTransfer.socket_viewer(host)
+connect = 1 # 0 mean connect, larger than 0 mean fail to connect
+def connect():
+    try:
+        viewer = SocketTransfer.socket_viewer(host)
+        isconnect = 0
+    except ConnectionRefusedError:
+        print("No target to connect!")
 
 app = QtGui.QApplication([])
-
+#win = QtGui.QMainWindow()
+#win.show()
 # Create graphics viewer
 view = pg.widgets.GraphicsView.GraphicsView()
 # Create Widget Layout
@@ -40,20 +50,31 @@ vb.addItem(img)
 # Create histogram and lut in graphics layout
 lut = pg.HistogramLUTItem()
 lut.setImageItem(img)
-lut.setHistogramRange(0, 65535)
+lut.setHistogramRange(0, 50000)
 l_view.addItem(lut)
+# Checkbox
+auto_checkbox = QtGui.QCheckBox("Auto Level")
+auto_checkbox.setChecked(True)
+layout.addWidget(auto_checkbox, 1, 0)
 
+#data = np.random.normal(size=(2048,2048))
 def update():
-    global img
-    #data = np.random.normal(size=(2048,2048))
-    data = viewer.recv_img()
+    if connect == 0 :
+        data = viewer.recv_img()
+    else:
+        data = None
+        connect()
+        timer.start(10)
+
     if not (data is None):
-        img.setImage(data, clear=True, _callSync='off')
+        if auto_checkbox.isChecked():
+            img.setImage(data.T, clear=True, _callSync='off', autoLevels=True)
+        else:
+            img.setImage(data.T, clear=True, _callSync='off', autoLevels=False)
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(0)
-
+timer.start(0) # Refersh each 16ms
 
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
