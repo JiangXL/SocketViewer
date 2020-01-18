@@ -11,7 +11,7 @@ Version | Commit
  0.2    | Using non-blocking socket
  0.2.1  | Set timeout in 0.1ms to avoid Windows' no responding Nov/22/2019
 Todo: 1. Add close function or context manager type
-      2. Add function to recv and sned serilize data instead of matrix 
+      2. Add function to recv and sned serilize data instead of matrix
 '''
 
 '''
@@ -23,7 +23,7 @@ class general_socket():
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setblocking(0)
         self.sock.settimeout(0.0001) # 0.0001 second
-   
+
     def recvall(self, sock, n):
         data = b''
         while len(data) < n:
@@ -35,7 +35,7 @@ class general_socket():
                 return None
             data += packet
         return data
-    
+
     def send_img(self, conn, img ):
         img_bytes = img.tobytes()
         msg = ( struct.pack('>I', len(img_bytes))  # unsigned int, length 4
@@ -45,10 +45,10 @@ class general_socket():
             conn.sendall( msg )
         except socket.timeout:
             print("Lost tcp connection")
-    
+
     def recv_img(self, sock ):
         # if timeout occur
-        raw_msglen = self.recvall( sock, 4 ) # read image length 
+        raw_msglen = self.recvall( sock, 4 ) # read image length
         if not raw_msglen:
             #print("None data", end=' ')
             return None
@@ -63,7 +63,7 @@ class general_socket():
         except AttributeError:
             return None
 
-                
+
 class socket_server(general_socket):
     def __init__(self):
         super().__init__()
@@ -71,9 +71,9 @@ class socket_server(general_socket):
         # add to avoid "Address already in used"
         self.sock.bind(('0.0.0.0', self.PORT))
         self.sock.listen(1)
-        
+
     def connect(self):
-        """ Accept to the last connect require if lost connection"""
+        """ Accept to the last connect require if lost connection """
         self.conn, addr = self.sock.accept()
         #self.conn.setblocking(0)
         #self.conn.settimeout(0.2)
@@ -82,18 +82,18 @@ class socket_server(general_socket):
         #    try:
         #        self.conn, addr = self.sock.accept()
         #    except socket.timeout:
-        #        isConnet = True 
+        #        isConnet = True
         print("Client", addr, "connected")
         # TODO: add a except to sure connecte final client
-    
+
     def send_img(self, img ):
         super().send_img(self.conn, img)
-       
-    
+
+
 class socket_viewer(general_socket):
     def __init__(self, HOST):
         super().__init__()
         self.sock.connect((HOST, self.PORT))
-        
+
     def recv_img( self ):
         return super().recv_img(self.sock)

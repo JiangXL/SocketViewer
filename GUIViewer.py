@@ -12,7 +12,7 @@ import argparse
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
-import SocketTransfer # for image transfer
+import SocketTransfer # image transfer library
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--host', type=str, default='127.0.0.1')
@@ -23,13 +23,10 @@ connect = 1 # 0 mean connect, larger than 0 mean fail to connect
 def connect():
     try:
         viewer = SocketTransfer.socket_viewer(host)
-        isconnect = 0
+        connect = 0
     except ConnectionRefusedError:
         print("No target to connect!")
 
-app = QtGui.QApplication([])
-#win = QtGui.QMainWindow()
-#win.show()
 # Create graphics viewer
 view = pg.widgets.GraphicsView.GraphicsView()
 # Create Widget Layout
@@ -52,10 +49,19 @@ lut = pg.HistogramLUTItem()
 lut.setImageItem(img)
 lut.setHistogramRange(0, 50000)
 l_view.addItem(lut)
+#info_layout = layout.addLayout(colspan=3)
 # Checkbox
 auto_checkbox = QtGui.QCheckBox("Auto Level")
 auto_checkbox.setChecked(True)
 layout.addWidget(auto_checkbox, 1, 0)
+# Connect
+auto_checkbox = QtGui.QCheckBox("Connect")
+auto_checkbox.setChecked(False)
+layout.addWidget(auto_checkbox, 2, 0)
+# Connect
+auto_checkbox = QtGui.QCheckBox("Pixel")
+auto_checkbox.setChecked(False)
+layout.addWidget(auto_checkbox, 3, 0)
 
 #data = np.random.normal(size=(2048,2048))
 def update():
@@ -63,8 +69,8 @@ def update():
         data = viewer.recv_img()
     else:
         data = None
-        connect()
-        timer.start(10)
+        #connect()
+        #timer.start(10)
 
     if not (data is None):
         if auto_checkbox.isChecked():
@@ -74,7 +80,7 @@ def update():
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(0) # Refersh each 16ms
+timer.start(0.1) # Refersh each 16ms
 
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
@@ -82,4 +88,3 @@ if __name__ == '__main__':
     import sys
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         QtGui.QApplication.instance().exec_()
-
