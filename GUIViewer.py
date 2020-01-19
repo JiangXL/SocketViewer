@@ -62,8 +62,10 @@ def connect():
     try:
         viewer = SocketTransfer.socket_viewer(host)
         connect = 0
+        con_checkbox.setChecked(True)
     except ConnectionRefusedError:
         print("No target to connect!")
+        con_checkbox.setChecked(False)
 
 #data = np.random.normal(size=(2048,2048))
 def update():
