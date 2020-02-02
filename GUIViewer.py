@@ -1,6 +1,7 @@
+#!/bin/python3
+
 """
 GUI Viewer to visualize image from socket
-
 H.F 20191008 ver 0.1
 H.F 20191111 ver 0.2
 TODO: FIX Performance at Windows
@@ -17,7 +18,7 @@ import SocketTransfer # image transfer library
 parser = argparse.ArgumentParser()
 parser.add_argument('--host', type=str, default='127.0.0.1')
 args = parser.parse_args()
-host = args.host
+host = args.host # Advanced function for debug and advanced usage
 
 app = QtGui.QApplication([])
 lw = pg.LayoutWidget()
@@ -47,41 +48,31 @@ auto_checkbox = QtGui.QCheckBox("Auto Level")
 auto_checkbox.setChecked(True)
 li.addWidget(auto_checkbox, 0, 0)
 # Connect
-con_checkbox = QtGui.QCheckBox("Connect")
-con_checkbox.setChecked(False)
-con_checkbox.setCheckable(False)
-li.addWidget(con_checkbox, 0, 1)
+connect_label = QtGui.QLabel("Waiting Connecttion")
+#con_checkbox.setChecked(False)
+li.addWidget(connect_label, 0, 1)
 
 # Pixel Picker
 intensity_picker= QtGui.QLabel("Intensity")
 li.addWidget(intensity_picker, 0, 2)
 lw.show()
 
-connect = 1 # 0 mean connect, larger than 0 mean fail to connect
-def connect():
-    try:
-        viewer = SocketTransfer.socket_viewer(host)
-        connect = 0
-        con_checkbox.setChecked(True)
-    except ConnectionRefusedError:
-        print("No target to connect!")
-        con_checkbox.setChecked(False)
-
-#data = np.random.normal(size=(2048,2048))
+viewer = SocketTransfer.socket_viewer(host)
+connect_label.setText(viewer.connectStatus)
 def update():
-    if connect == 0 :
-        data = viewer.recv_img()
-    else:
-        data = None
-        #data = np.random.normal(size=(2048,2048))
+    ''' Update GUI '''
+    #if viewer.isconnected :
+    data_tmp = viewer.recv_img()
         #connect()
-        #timer.start(10)
+    connect_label.setText(viewer.connectStatus)
 
-    if not (data is None):
+    if not (data_tmp is None):
+        global data
+        data = data_tmp.T
         if auto_checkbox.isChecked():
-            img.setImage(data.T, clear=True, _callSync='off', autoLevels=True)
+            img.setImage(data, clear=True, _callSync='off', autoLevels=True)
         else:
-            img.setImage(data.T, clear=True, _callSync='off', autoLevels=False)
+            img.setImage(data, clear=True, _callSync='off', autoLevels=False)
 
 """
 Pick grey value from image
@@ -100,7 +91,7 @@ proxy = pg.SignalProxy(img.scene().sigMouseMoved, rateLimit=60, slot=mouseMoved)
 
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
-timer.start(1) # Refersh each 16ms
+timer.start(0) # Refersh each 1ms
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':
