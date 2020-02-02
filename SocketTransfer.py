@@ -1,4 +1,16 @@
 #!/bin/python3
+"""Modules for transfer image in local or remote using socket(TCP)
+
+Version | Commit
+ 0.1    | First version, by H.F, Oct/08/2019
+ 0.2    | Using non-blocking socket
+ 0.2.1  | Set timeout in 0.1ms to avoid Windows' no responding Nov/22/2019
+ 0.3    | Much more reliable: detect exceptions caused by connection failure,
+        | then listen, accept, reconnect again. (H.F, Feb/02/2020, 到岭)
+Todo: 1. Add context manager type
+      2. Add function to recv and sned serilize data instead of matrix
+"""
+
 import time
 import socket
 import struct
@@ -6,62 +18,41 @@ import numpy as np
 
 #Ref:https://stackoverflow.com/questions/17667903/python-socket-receive-large-amount-of-data
 #    https://docs.python.org/zh-cn/3/library/struct.html
-'''
-Version | Commit
- 0.1    | First version, by H.F, Oct/08/2019
- 0.2    | Using non-blocking socket
- 0.2.1  | Set timeout in 0.1ms to avoid Windows' no responding Nov/22/2019
- 0.3    |
-Todo: 1. Add close function or context manager type
-      2. Add function to recv and sned serilize data instead of matrix
-'''
 
-'''
-General class for server and client modules
-'''
 class general_socket():
+    """General class for sender(server) and receiver(client) modules"""
     def __init__(self):
         self.PORT = 60000
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.__generate_testimg()
 
-    '''
-    Receive and depackage stream data
-    '''
     def recvall(self, sock, n):
+        """Receive and return speical length stream data byte by byte."""
         data = b''
         while len(data) < n:
             packet = sock.recv( n-len(data))
-            #try:
-            #    packet = sock.recv( n-len(data))
-            #except socket.timeout: # socket timeout error
-            #    return None
             if packet == b'':
                 raise ConnectionError("Service down")
-            #if not packet: # TODO: may a bug
-            #    return None
             data += packet
         return data
 
-    '''
-    Package image and send packaged data
-    '''
-    def send_img(self, conn, img):
-        img_bytes = img.tobytes()
-        msg = ( struct.pack('>I', len(img_bytes))  # unsigned int, length 4
-                + struct.pack('>H',img.shape[0])
-               + struct.pack('>H', img.shape[1]) + img_bytes)
-        try:
-            conn.sendall(msg)
-        except socket.timeout:
-            print("Lost tcp connection")
-        except BrokenPipeError:
-            print("Fail to send")
-            print("BrokenPipeError: Connecttion has lost, need reconnect!")
+    def __generate_testimg(self):
+        """Generate 2d-gaussian matrix"""
+        # Ref: https://gist.github.com/andrewgiessel/4635563
+        size = 1024
+        fwm = 300
+        x0 = y0 = size//2
+        x = np.arange(0, size, 1, float)
+        y = x[:,np.newaxis]
+        self.testimg = (2**16 * np.exp(-4*np.log(2) * ((x-x0)**2 +
+            (y-y0)**2) / fwm**2)).astype(np.uint16)
 
-class socket_server(general_socket):
-    '''
-    Server Class to Send Image(Blocking Socket)
-    '''
+    def close(self):
+        """Close runing socket"""
+        self.sock.close() # TODO: may not work in sender
+
+class socket_sender(general_socket):
+    """Server Class to Send Image(Blocking Socket Server)"""
     def __init__(self):
         super().__init__()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -72,18 +63,19 @@ class socket_server(general_socket):
         self.sock.settimeout(0.0001) # is time-out socket. Time-out socket is
         # 0.0001 second              # useful to print info during  connecting.
 
-    def connect(self):
-        """ Try to accept to the last connect require if lost connection """
+    def accept(self):
+        """More reliable accept function to accept latest connect request."""
         flag = 0
         while flag < 20000: # Until hass
             try:
                 self.conn, addr = self.sock.accept()
-                while True: # Only choose final request
+                while True: # only choose final request
                     try:    # TODO: need much test for effiency
                         self.conn, addr = self.sock.accept()
                     except socket.timeout:
                         break
-                self.conn.setblocking(True) # Change to blocking socket
+                self.conn.setblocking(True) # change to blocking socket
+                self.send_img(self.testimg) # send image trigger receiver update
                 print("Client", addr, "connected")
                 break
             except socket.timeout:
@@ -95,13 +87,24 @@ class socket_server(general_socket):
                     print("Please reconnect after opening reveive program")
                     break
 
-    def send_img(self, img ):
-        super().send_img(self.conn, img)
+    def send_img(self, img):
+        """Package 16 bit gray image and send packaged data."""
+        img_bytes = img.tobytes()       # Only accept 16 bit gray iamge
+        msg = ( struct.pack('>I', len(img_bytes))  # unsigned int, length 4
+                + struct.pack('>H',img.shape[0])
+               + struct.pack('>H', img.shape[1]) + img_bytes)
+        try:
+            self.conn.sendall(msg)
+        except socket.timeout:
+            print("Lost tcp connection")
+        except BrokenPipeError:
+            print("Fail to send")
+            print("BrokenPipeError: Connecttion has lost, need reconnect!")
+    #def send_img(self, img ):
+        #super().send_img(self.conn, img)
 
-class socket_viewer(general_socket):
-    '''
-    Class to Receive Images(Timeout Socket)
-    '''
+class socket_receiver(general_socket):
+    """Class to Receive Images(Timeout Socket Client)"""
     def __init__(self, HOST):
         super().__init__()
         self.HOST = HOST
@@ -112,7 +115,7 @@ class socket_viewer(general_socket):
         self.sock.settimeout(0.0001) # 0.0001 second
 
     def connect(self):
-        '''Connect with sender service(blocking)'''
+        """Connect with sender service(blocking)."""
         time.sleep(0.001)     # Add sleep to avoid slug cpu
         if not self.isconnected: # Only update when refresh GUI, due to Windows
             try:                 # will no responing using blocking loop
@@ -133,7 +136,9 @@ class socket_viewer(general_socket):
             return "Connected"
 
     def recv_img(self):
-        """Receive stream data and depackage to image"""
+        """Receive and depackage stream data, return image.
+        If no image is received, return None.
+        """
         # Get frame header and deal with connection error
         try:
             raw_msglen = self.recvall(self.sock, 4) # read image length
@@ -147,11 +152,13 @@ class socket_viewer(general_socket):
             self.isconnected = False
             self.connect()
             return None
+        # Then receive and depackage image info frame
         msglen = struct.unpack('>I', raw_msglen)[0]
         raw_height = self.recvall(self.sock, 2)  # read image height
         height = struct.unpack('>H', raw_height)[0]
         raw_width = self.recvall(self.sock, 2)   # read image width
         width = struct.unpack('>H', raw_width)[0]
+        # Finaly, receive and depackage image data frame
         try: # add HF Nov/22/19
             self.connectStatus = "Connected"
             return (np.frombuffer(self.recvall(self.sock, msglen),
