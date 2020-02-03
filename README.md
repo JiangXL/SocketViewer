@@ -13,9 +13,13 @@ sudo pip3 install git+https://github.com/pyqtgraph/pyqtgraph@develop
 2020/02/02: Add intensity picker, connection status label in `CameraViewer.py`.
 Add reconnection support to handle connection interruption.
 
-## Design Layout
+## Design 
+
+`SocketTransfer.py`
+![SocketTransfer Logic](doc/SocketTransfer-Logic.png)
+
 `CameraViewer.py`
-![QtLayout & Window](img/CameraViewer.png)
+![QtLayout & Window](doc/CameraViewer-Layout.png)
 
 ## Files List
 

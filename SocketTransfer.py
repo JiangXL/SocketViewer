@@ -26,15 +26,6 @@ class general_socket():
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__generate_testimg()
 
-    def recvall(self, sock, n):
-        """Receive and return speical length stream data byte by byte."""
-        data = b''
-        while len(data) < n:
-            packet = sock.recv( n-len(data))
-            if packet == b'':
-                raise ConnectionError("Service down")
-            data += packet
-        return data
 
     def __generate_testimg(self):
         """Generate 2d-gaussian matrix"""
@@ -100,8 +91,6 @@ class socket_sender(general_socket):
         except BrokenPipeError:
             print("Fail to send")
             print("BrokenPipeError: Connecttion has lost, need reconnect!")
-    #def send_img(self, img ):
-        #super().send_img(self.conn, img)
 
 class socket_receiver(general_socket):
     """Class to Receive Images(Timeout Socket Client)"""
@@ -135,6 +124,16 @@ class socket_receiver(general_socket):
             self.connectStatus = "Connected"
             return "Connected"
 
+    def recvall(self, sock, n):
+        """Receive and return speical length stream data byte by byte."""
+        data = b''
+        while len(data) < n:
+            packet = sock.recv( n-len(data))
+            if packet == b'':
+                raise ConnectionError("Service down")
+            data += packet
+        return data
+
     def recv_img(self):
         """Receive and depackage stream data, return image.
         If no image is received, return None.
@@ -144,7 +143,7 @@ class socket_receiver(general_socket):
             raw_msglen = self.recvall(self.sock, 4) # read image length
         except socket.timeout: # socket timeout error
             return None
-        except (ConnectionError, OSError): # TODO: OSError
+        except (ConnectionError, OSError):
             #print("Sender service has down!")
             #print("Need to start sender service again!")
             #print("Waiting new connection")
