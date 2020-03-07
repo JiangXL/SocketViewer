@@ -21,6 +21,8 @@ Add reconnection support to handle connection interruption.
 `CameraViewer.py`
 ![QtLayout & Window](doc/CameraViewer-Layout.png)
 
+SocketSync.py
+
 ## Files List
 
 | Files              | Description
