@@ -7,6 +7,7 @@ Version | Commit
  0.2.1  | Set timeout in 0.1ms to avoid Windows' no responding Nov/22/2019
  0.3    | Much more reliable: detect exceptions caused by connection failure,
         | then listen, accept, reconnect again. (H.F, Feb/02/2020, 到岭)
+ 0.3.1  | Support transfer 8bit gray image
 Todo: 1. Add context manager type
       2. Add function to recv and sned serilize data instead of matrix
 """
@@ -79,11 +80,14 @@ class socket_sender(general_socket):
                     break
 
     def send_img(self, img):
-        """Package 16 bit gray image and send packaged data."""
+        """Package 8/16 bit gray image and send packaged data."""
+
+        img_bit = int(img.dtype.name[4:]) # image depth 8/16
         img_bytes = img.tobytes()       # Only accept 16 bit gray iamge
         msg = ( struct.pack('>I', len(img_bytes))  # unsigned int, length 4
                 + struct.pack('>H',img.shape[0])
-               + struct.pack('>H', img.shape[1]) + img_bytes)
+               + struct.pack('>H', img.shape[1]) 
+               + struct.pack('>H', img_bit) + img_bytes)
         try:
             self.conn.sendall(msg)
         except socket.timeout:
@@ -157,10 +161,18 @@ class socket_receiver(general_socket):
         height = struct.unpack('>H', raw_height)[0]
         raw_width = self.recvall(self.sock, 2)   # read image width
         width = struct.unpack('>H', raw_width)[0]
+        raw_bit= self.recvall(self.sock, 2)   # read image depth
+        bit = struct.unpack('>H', raw_bit)[0]
+
         # Finaly, receive and depackage image data frame
         try: # add HF Nov/22/19
             self.connectStatus = "Connected"
-            return (np.frombuffer(self.recvall(self.sock, msglen),
-                dtype=np.uint16).reshape([height, width]))
+            if bit == 16 : # Adapt to different image depth
+                return (np.frombuffer(self.recvall(self.sock, msglen),
+                    dtype=np.uint16).reshape([height, width]))
+            else :
+                return (np.frombuffer(self.recvall(self.sock, msglen),
+                    dtype=np.uint8).reshape([height, width]))
+
         except AttributeError:
             return None

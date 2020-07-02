@@ -7,6 +7,7 @@ import threading
 Use socket broadcast variables
 | Version | Commit
 | 0.1     | workable version
+| 2020307 | fix update relay due to network traffic
 Ref: https://keelii.com/2018/09/24/socket-programming-in-python/
 """
 class SocketSync():
@@ -47,18 +48,24 @@ class Server(SocketSync):
                 time.sleep(3)
         self.conn.setblocking(0)
         self.conn.settimeout(0.001)
+        print("Found ParameterViewer", end=" ")
 
     def send(self):
-        while (True):
-            # Send all variance data
+        self.sync_run = True
+        var_last = 0
+        while (self.sync_run):
+            # Send all parameters
             for var in self._subscribers:
-                #self.conn.sendall(struct.pack('>d', var.value))
-                try: 
-                    self.conn.sendall(struct.pack('>d', var.value))
+                try:
+                    # Only send updated value to avoid network traffic
+                    if var_last != var.value:
+                        self.conn.sendall(struct.pack('>d', var.value))
+                        var_last = var.value
                 except ConnectionError:
+                    print("Lost ParameterViewer", end=" ")
                     self.accept()
             #time.sleep(0.001)
-            # Revice all variance data
+            # Revice all parameters
             try:
                 data = self.conn.recv(8)
                 var.value = float(struct.unpack('>d', data)[0])
@@ -67,8 +74,12 @@ class Server(SocketSync):
                 None
 
     def sync(self):
-        sync_thread = threading.Thread(target=self.send)
-        sync_thread.start()
+        self.sync_thread = threading.Thread(target=self.send)
+        self.sync_thread.start()
+
+    def sync_stop(self):
+        self.sync_run = False
+        self.sync_thread.join()
 
 class Client(SocketSync):
     """ Client for SocketSync """
@@ -79,16 +90,16 @@ class Client(SocketSync):
         self.sock.setblocking(0)
         self.sock.settimeout(0.001)
 
-    def recv_var( self ):
+    def recv_var(self):
         try:
             return struct.unpack('>d', self.sock.recv(8))[0]
         except socket.timeout:
+            #print("*", end="")
             return None
         #except struct.error:
         #    self.connect()
 
-
-    def send( self, _var ):
+    def send(self, _var):
         self.sock.sendall(struct.pack('>d', _var))
 
 class Var():

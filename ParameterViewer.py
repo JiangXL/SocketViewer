@@ -3,7 +3,6 @@ Lanuch Pad for romote socket variable
 | Version | Commit
 
 #TODO: Write fix parameter dialog box first
-
 """
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
@@ -38,7 +37,6 @@ spins = [
      pg.SpinBox(value=50, bounds=[0, 100]))
 ]
 
-
 # Header
 layout.addWidget(QtGui.QLabel("Using Value  "), 0, 1)
 layout.addWidget(QtGui.QLabel("Manual  "), 0, 2)
@@ -61,10 +59,10 @@ for text, spin in spins:
 var_num = len(item_labels)
 def updateVariables():
     # Recv msg from server: [using_value]
-   
+
     # Send msg to server: [manual, setting_value]
 
-    # Update Label 
+    # Update Label
     for i in range(var_num):
         if checkboxs[i].isChecked():
             sock_client.send(spins[0][1].value())
@@ -73,13 +71,14 @@ def updateVariables():
         var = sock_client.recv_var()
         if not var==None:
             value_labels[i].setText(str(var))
+            #print(var)
 
 # Add threading to wait for updated value
 # use socket timeout except
 
 timer = QtCore.QTimer()
 timer.timeout.connect(updateVariables)
-timer.start(0) # Refersh Window each 16ms 
+timer.start(1) # Refersh Window each 16ms
 
 ## Start Qt event loop unless running in interactive mode or using pyside.
 if __name__ == '__main__':
