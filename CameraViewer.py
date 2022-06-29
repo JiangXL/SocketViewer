@@ -13,7 +13,7 @@ import time
 import argparse
 import numpy as np
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtGui, QtCore
+from pyqtgraph.Qt import QtWidgets, QtCore
 import SocketTransfer # image transfer library
 
 parser = argparse.ArgumentParser()
@@ -21,7 +21,7 @@ parser.add_argument('--host', type=str, default='127.0.0.1')
 args = parser.parse_args()
 host = args.host # Advanced function for debug and advanced usage
 
-app = QtGui.QApplication([])
+app = QtWidgets.QApplication([])
 lw = pg.LayoutWidget()
 lw.setWindowTitle('Camera Viewer')
 view = pg.GraphicsView()
@@ -46,21 +46,22 @@ lg.addItem(lut)
 li = pg.LayoutWidget()
 lw.addWidget(li, row=1)
 # Checkbox
-auto_checkbox = QtGui.QCheckBox("Auto Level")
+auto_checkbox = QtWidgets.QCheckBox("Auto Level")
 auto_checkbox.setChecked(True)
 li.addWidget(auto_checkbox, 0, 0)
 # Connect
-connect_label = QtGui.QLabel("Waiting Connecttion")
+connect_label = QtWidgets.QLabel("Waiting Connecttion")
 #con_checkbox.setChecked(False)
 li.addWidget(connect_label, 0, 1)
 
 # Pixel Picker
-intensity_picker= QtGui.QLabel("Intensity")
+intensity_picker= QtWidgets.QLabel("Intensity")
 li.addWidget(intensity_picker, 0, 2)
 lw.show()
 
 viewer = SocketTransfer.socket_receiver(host)
 connect_label.setText(viewer.connectStatus)
+
 def update():
     """GUI frame function."""
     data = viewer.recv_img()
@@ -73,7 +74,7 @@ def update():
             img.setImage(data.T, clear=True, _callSync='off', autoLevels=False)
 
 def mouseMoved(evt):
-    """Pick grey value from current image."""
+    """Pick gray value from current image."""
     pos = evt[0]  ## using signal proxy turns original arguments into a tuple
     if vb.sceneBoundingRect().contains(pos):
         x = int(vb.mapSceneToView(pos).x()//1)
@@ -94,4 +95,4 @@ timer.start(0) # Frame refersh time
 if __name__ == '__main__':
     import sys
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
+        QtWidgets.QApplication.instance().exec_()
