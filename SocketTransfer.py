@@ -69,6 +69,7 @@ class socket_sender(general_socket):
                 self.conn.setblocking(True) # change to blocking socket
                 self.send_img(self.testimg) # send image trigger receiver update
                 print("Client", addr, "connected")
+                return True
                 break
             except socket.timeout:
                 flag += 1
@@ -77,6 +78,7 @@ class socket_sender(general_socket):
                 elif flag == 20000:
                     print("No receive program found!")
                     print("Please reconnect after opening reveive program")
+                    return False
                     break
 
     def send_img(self, img):
