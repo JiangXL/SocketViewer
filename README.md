@@ -6,7 +6,7 @@ based on this module.
 Python 3, pyqtgraph-0.11.0 is required for `CameraViewer.py` and `ParameterViewer.py`
 
 ``` bash
-sudo pip3 install git+https://github.com/pyqtgraph/pyqtgraph@develop
+pip3 install pyqtgraph
 ```
 
 ## Roadmap

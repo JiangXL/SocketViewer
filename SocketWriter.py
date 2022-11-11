@@ -31,24 +31,28 @@ class general_socket():
 
     def close(self):
         """Close runing socket"""
-        self.sock.close() # TODO: may not work in sender
+        self.sock.close()
 
 class socket_sender(general_socket):
     """Cilent class to send image( Blocking Socket cilent )"""
     def __init__(self, HOST):
         super().__init__()
         self.HOST = HOST
-        self.sock.connect((self.HOST, self.PORT)) # Has to new socket
+        self.sock.connect((self.HOST, self.PORT))
 
-    def send_img(self, img):
+    def send_img(self, fname, img):
         """Package 8/16 bit gray image and send packaged data."""
         # add header to msg
+        fname_len= len(fname.encode())
         img_bit = int(img.dtype.name[4:]) # image depth 8/16
         img_bytes = img.tobytes()
-        msg = ( struct.pack('>I', len(img_bytes))  # unsigned int, length 4
-                + struct.pack('>H',img.shape[0])
+        msg = (  struct.pack('>I', fname_len) 
+               + fname.encode()
+               + struct.pack('>I', len(img_bytes))  # unsigned int, length 4
+               + struct.pack('>H',img.shape[0])
                + struct.pack('>H', img.shape[1]) 
-               + struct.pack('>H', img_bit) + img_bytes)
+               + struct.pack('>H', img_bit) 
+               + img_bytes)
         try:
             self.sock.sendall(msg)
         except socket.timeout:
@@ -62,11 +66,12 @@ class socket_receiver(general_socket):
     def __init__(self, HOST='0.0.0.0'):
         super().__init__()
         self.HOST = HOST
-        self.isconnected = False
         self.connectStatus = "Waiting"
         self.sock.bind((self.HOST, self.PORT))
         self.sock.listen(1) 
         self.conn, addr = self.sock.accept()
+        self.isconnected = True
+        self.fname = "test_save.tiff"
 
     def recvall(self, sock, n):
         """Receive and return speical length stream data byte by byte."""
@@ -78,8 +83,19 @@ class socket_receiver(general_socket):
             data += packet
         return data
 
-    def recv_property(self):
+    def recv_fname(self):
         """Receive option to save image."""
+        try:
+            raw_msglen = self.recvall(self.conn, 4) # read image length
+        except socket.timeout:
+            return None
+        except (ConnectionError, OSError):
+            self.connectStatus = "Sender Down"
+            self.isconnected = False
+            return None
+        msglen = struct.unpack('>I', raw_msglen)[0]
+        fname = self.recvall(self.conn, msglen).decode() # read the name length
+        return fname
 
     def recv_img(self):
         """Receive and depackage stream data, return image."""
@@ -92,10 +108,11 @@ class socket_receiver(general_socket):
         except (ConnectionError, OSError):
             self.connectStatus = "Sender Down"
             self.isconnected = False
-            self.sock.listen(1)
-            self.conn, addr = self.sock.accept()
             return None
         # Then receive and depackage image info frame
+        msglen = struct.unpack('>I', raw_msglen)[0]
+        self.fname = self.recvall(self.conn, msglen).decode() # read the name length
+        raw_msglen = self.recvall(self.conn, 4) # read image length
         msglen = struct.unpack('>I', raw_msglen)[0]
         raw_height = self.recvall(self.conn, 2)  # read image height
         height = struct.unpack('>H', raw_height)[0]
@@ -113,24 +130,28 @@ class socket_receiver(general_socket):
             else :
                 return (np.frombuffer(self.recvall(self.conn, msglen),
                     dtype=np.uint8).reshape([height, width]))
-
         except AttributeError:
             return None
 
-    def write2file(self, img):
+    def write2file(self, fname, img):
         """write data to file.""" 
-        filename = "test_save.tif"
+        #fname = "test_save.tif"
         isBigTiff = True
         isAppend = True
-        tifffile.imwrite(filename, img, bigtiff=isBigTiff, 
+        tifffile.imwrite(fname, img, bigtiff=isBigTiff, 
                          photometric='minisblack', append=isAppend)
 
     def monitor(self):
         while(True):
             time.sleep(0.0001)
+            #fname = self.recv_fname()
             img = self.recv_img()
             if not (img is None):
-                self.write2file(img)
+                self.write2file(self.fname, img)
+            if self.isconnected == False:
+                self.conn.close()
+                self.sock.close()
+                break
 
 if __name__ == '__main__':
     import sys
@@ -141,3 +162,4 @@ if __name__ == '__main__':
         if sys.argv[1] == "server":
             recevier = socket_receiver()
             recevier.monitor()
+            sys.exit(0)
